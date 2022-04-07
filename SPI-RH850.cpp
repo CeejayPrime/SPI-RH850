@@ -44,12 +44,9 @@ bool cycle_active = false;
 int numOfPages = 9;
 int numOfMenuPages = sizeof(myMessages) / sizeof(myMessages[0]);
 
-byte b1 = (myMessages[0] >> 16);
-byte b2 = (myMessages[0] >> 8);
-byte b3 = (myMessages[0]);
-
-
-
+byte b1;
+byte b2;
+byte b3;
 
 /*******************************************************************************************************************************************************
   This is to check if the cycle button have been turned on. The purpose for this is that we can start and stop thecycle with the press of only 1 push button
@@ -62,9 +59,11 @@ boolean is_button_pressed() {
   if (reading == HIGH and previous == LOW and millis() - time > debounce) {
     if (state == HIGH) {
       state = LOW;
+      Serial.println(state);
     }
     else {
       state = HIGH;
+      Serial.println(state);
       is_pressed = true;
     }
     time = millis();
@@ -77,6 +76,7 @@ boolean is_button_pressed() {
 /*******************************************************************************************************************************************************/
 /****End of line****/
 /*******************************************************************************************************************************************************/
+
 
 void LCD_home() {
   lcd.clear();
@@ -98,6 +98,7 @@ void LCD_home() {
 
 ISR(SPI_STC_vect) {
   byte c = SPDR;
+
   command = c;
 
   switch (command) {
@@ -140,6 +141,10 @@ void setup() {
 }
 
 void loop() {
+
+  byte b1 = (message >> 16);
+  byte b2 = (message >> 8);
+  byte b3 = (message);
 
   current_select = digitalRead(select);
   current_return = digitalRead(returnHome);
