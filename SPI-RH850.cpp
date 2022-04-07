@@ -9,9 +9,9 @@
 
 LiquidCrystal_I2C lcd(0x3F, 20, 4);
 
-#define cycle_start 3
-#define select 4
-#define returnHome 5
+#define cycle_start 8
+#define select 9
+#define returnHome 10
 
 int i = 0;
 uint32_t message;
@@ -51,9 +51,9 @@ byte b3 = (myMessages[0]);
 
 
 
-
-/****This is to check if the cycle button have been turned on. The purpose for this
-  is that we can start and stop the cycle with the press of only 1 push button****/
+/*******************************************************************************************************************************************************
+  This is to check if the cycle button have been turned on. The purpose for this is that we can start and stop thecycle with the press of only 1 push button
+*******************************************************************************************************************************************************/
 
 boolean is_button_pressed() {
   bool is_pressed = false;
@@ -62,11 +62,9 @@ boolean is_button_pressed() {
   if (reading == HIGH and previous == LOW and millis() - time > debounce) {
     if (state == HIGH) {
       state = LOW;
-      Serial.println(state);
     }
     else {
       state = HIGH;
-      Serial.println(state);
       is_pressed = true;
     }
     time = millis();
@@ -77,37 +75,27 @@ boolean is_button_pressed() {
 }
 
 /*******************************************************************************************************************************************************/
+/****End of line****/
 /*******************************************************************************************************************************************************/
-/*******************************************************************************************************************************************************/
-
-boolean debounceTime(boolean last, int pin) {
-  boolean current = digitalRead(pin);
-
-  if (last != current) {
-    delay(5);
-    current = digitalRead(pin);
-  }
-  return current;
-}
-
-int selectButtonPressed() {
-  current_select = debounceTime(last_select, select);
-  uint32_t j;
-  if (last_select == HIGH and current_select == LOW) {
-    i = j;
-    Serial.println(j);
-    last_select = current_select;
-  }
-}
 
 void LCD_home() {
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("No Fault");
   lcd.setCursor(0, 1);
   lcd.print("Code: 0x000000");
+  lcd.setCursor(0, 3);
+  lcd.print("PRESS START");
+
+  cycle_active = false;
+  message = myMessages[0];
 }
 
+
+/*******************************************************************************************************************************************************/
 /****Slave message sending****/
+/*******************************************************************************************************************************************************/
+
 ISR(SPI_STC_vect) {
   byte c = SPDR;
   command = c;
@@ -138,15 +126,14 @@ void setup() {
   // Initialize LCD
   lcd.init();
   lcd.backlight();
-  lcd.setCursor(0, 0);
   lcd.clear();
-  lcd.print("WELCOME");
-  delay(1500);
-  lcd.clear();
+  LCD_home();
   //Initialization complete
 
   pinMode(MISO, OUTPUT);
   pinMode(cycle_start, INPUT_PULLUP);
+  pinMode(select, INPUT_PULLUP);
+  pinMode(returnHome, INPUT_PULLUP);
 
   SPCR |= _BV(SPE);
   SPCR |= _BV(SPIE);
@@ -154,37 +141,41 @@ void setup() {
 
 void loop() {
 
-  current_select = debounceTime(last_select, select);
+  current_select = digitalRead(select);
+  current_return = digitalRead(returnHome);
 
   if (is_button_pressed()) {
     cycle_active = true;
-  }
-
-  if (cycle_active and millis() - time > 5000) {
-    i++;
-    if (i >= 9) {
-      i = 0;
-    }
     lcd.clear();
-    lcd.setCursor(0, 1);
-    lcd.print("Fault Code: " + String(display[i]));
-    Serial.println(i);
-    time = millis();
+    lcd.setCursor(4, 1);
+    lcd.print("STARTING...");
+    i = 0;
   }
-  if (cycle_active) {
-    if (current_select != last_select) {
-      last_select = current_select;
 
-      if (last_select == HIGH) {
-        cycle_active = false;
-        lcd.setCursor(0, 2);
-        lcd.print(String(display[i]) + " Selected");
-        message = myMessages[i];
-        Serial.println(message, HEX);
+  if (cycle_active) {
+    if (millis() - time > 5000) {
+      i++;
+      if (i >= 9) {
+        i = 0;
       }
+      lcd.clear();
+      lcd.setCursor(0, 1);
+      lcd.print("Fault Code: " + String(display[i]));
+      time = millis();
+    }
+
+    if (current_select == LOW and last_select == HIGH) {
+      lcd.setCursor(0, 2);
+      lcd.print(String(display[i]) + " Selected");
+      message = myMessages[i];
+      cycle_active = false;
     }
   }
-  //  Serial.println("Value of I: " +String(i));
+
+  if (current_return == LOW and last_return == HIGH) {
+    LCD_home();
+  }
+
   if (digitalRead(SS) == HIGH) {
     command = 0;
   }
