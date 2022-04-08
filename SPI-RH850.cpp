@@ -12,6 +12,7 @@ LiquidCrystal_I2C lcd(0x3F, 20, 4);
 #define cycle_start 8
 #define select 9
 #define returnHome 10
+#define toggleOn 7
 
 int i = 0;
 uint32_t message;
@@ -21,6 +22,9 @@ boolean last_return = HIGH;
 
 boolean current_select = HIGH;
 boolean last_select = HIGH;
+
+boolean current_toggle = HIGH;
+boolean last_toggle = HIGH;
 
 int state = HIGH;
 int reading;
@@ -40,9 +44,6 @@ String display[9] = {"0x000000", "0x400000", "0x100000", "0x002000", "0x000100",
 long int myMessages[9] = {0x000000, 0x400000, 0x100000, 0x002000, 0x000100, 0x000080, 0x000040, 0x000008, 0x000004};
 
 bool cycle_active = false;
-
-int numOfPages = 9;
-int numOfMenuPages = sizeof(myMessages) / sizeof(myMessages[0]);
 
 byte b1;
 byte b2;
@@ -132,9 +133,11 @@ void setup() {
   //Initialization complete
 
   pinMode(MISO, OUTPUT);
+
   pinMode(cycle_start, INPUT_PULLUP);
   pinMode(select, INPUT_PULLUP);
   pinMode(returnHome, INPUT_PULLUP);
+  pinMode(toggleOn, INPUT_PULLUP);
 
   SPCR |= _BV(SPE);
   SPCR |= _BV(SPIE);
@@ -148,6 +151,8 @@ void loop() {
 
   current_select = digitalRead(select);
   current_return = digitalRead(returnHome);
+
+  current_toggle = digitalRead(toggleOn);
 
   if (is_button_pressed()) {
     cycle_active = true;
@@ -173,8 +178,27 @@ void loop() {
       lcd.setCursor(0, 2);
       lcd.print(String(display[i]) + " Selected");
       message = myMessages[i];
+
       cycle_active = false;
     }
+
+    while (!cycle_active) {
+      if (current_toggle == HIGH and last_toggle == HIGH) {
+        lcd.setCursor(0, 3);
+        lcd.print("Sending to slave 1");
+
+      }
+
+      else {
+        if (current_toggle == LOW and last_toggle == HIGH) {
+          lcd.setCursor(0, 3);
+          lcd.print("Sending to slave 2");
+        }
+      }
+      if (current_return == LOW and last_return == HIGH);
+      break;
+    }
+
   }
 
   if (current_return == LOW and last_return == HIGH) {
